@@ -4,18 +4,10 @@ import gspread
 from google.oauth2.service_account import Credentials
 from googleapiclient.discovery import build
 
-# -----------------------------
-# CONFIG
-# -----------------------------
 REVIEWERS = ["Henrik", "Daniel", "Thomas", "Ahmad"]
-RATING_OPTIONS = ["easy", "medium", "difficult", "irrelevant"]
-SHEET_NAME = "Sheet1"  # Change if your worksheet has another name
+SHEET_NAME = "Sheet1"
 
-# -----------------------------
-# GOOGLE AUTH
-# -----------------------------
 @st.cache_resource
-
 def get_google_clients():
     scopes = [
         "https://www.googleapis.com/auth/spreadsheets",
@@ -32,9 +24,6 @@ def get_google_clients():
     return gspread_client, drive_service
 
 
-# -----------------------------
-# GOOGLE DRIVE
-# -----------------------------
 @st.cache_data(ttl=300)
 def list_maps_in_folder(folder_id: str):
     _, drive_service = get_google_clients()
@@ -65,12 +54,9 @@ def list_maps_in_folder(folder_id: str):
 
 
 def get_drive_image_url(file_id: str) -> str:
-    return f"https://drive.google.com/thumbnail?id={file_id}&sz=w1000"
+    return f"https://drive.google.com/thumbnail?id={file_id}&sz=w1200"
 
 
-# -----------------------------
-# GOOGLE SHEETS
-# -----------------------------
 def get_worksheet(sheet_url: str):
     gspread_client, _ = get_google_clients()
     spreadsheet = gspread_client.open_by_url(sheet_url)
@@ -78,7 +64,7 @@ def get_worksheet(sheet_url: str):
     return worksheet
 
 
-@st.cache_data(ttl=60)
+@st.cache_data(ttl=300)
 def load_ratings_df(sheet_url: str) -> pd.DataFrame:
     worksheet = get_worksheet(sheet_url)
     records = worksheet.get_all_records()
@@ -106,48 +92,31 @@ def ensure_headers(sheet_url: str):
         load_ratings_df.clear()
 
 
-
-def find_row_for_map(worksheet, filename: str):
-    values = worksheet.col_values(1)  # Column A = Map
-    for i, value in enumerate(values[1:], start=2):  # Skip header row
-        if str(value).strip() == filename:
-            return i
-    return None
+def find_row_for_map_in_df(df: pd.DataFrame, filename: str):
+    matches = df.index[df["Map"].astype(str).str.strip() == filename].tolist()
+    return matches[0] + 2 if matches else None
 
 
-
-def append_map_row_if_missing(sheet_url: str, filename: str):
+def save_rating(sheet_url: str, filename: str, reviewer: str, rating: str, df: pd.DataFrame):
     worksheet = get_worksheet(sheet_url)
-    row_number = find_row_for_map(worksheet, filename)
-
-    if row_number is None:
-        worksheet.append_row([filename, "", "", "", ""])
-        row_number = find_row_for_map(worksheet, filename)
-
-    load_ratings_df.clear()
-    return row_number
-
-
-
-def save_rating(sheet_url: str, filename: str, reviewer: str, rating: str):
-    worksheet = get_worksheet(sheet_url)
-    row_number = append_map_row_if_missing(sheet_url, filename)
+    row_number = find_row_for_map_in_df(df, filename)
 
     reviewer_col_map = {
         "Henrik": 2,
         "Daniel": 3,
         "Thomas": 4,
-        "Ahmed": 5,
+        "Ahmad": 5,
     }
     col_number = reviewer_col_map[reviewer]
+
+    if row_number is None:
+        worksheet.append_row([filename, "", "", "", ""])
+        row_number = len(df) + 2
 
     worksheet.update_cell(row_number, col_number, rating)
     load_ratings_df.clear()
 
 
-# -----------------------------
-# REVIEW SELECTION LOGIC
-# -----------------------------
 def pick_next_map(files, df: pd.DataFrame, reviewer: str):
     rated_maps = set(
         df.loc[df[reviewer].astype(str).str.strip() != "", "Map"].astype(str).tolist()
@@ -157,9 +126,6 @@ def pick_next_map(files, df: pd.DataFrame, reviewer: str):
     return remaining[0] if remaining else None
 
 
-# -----------------------------
-# STREAMLIT UI
-# -----------------------------
 st.set_page_config(page_title="Map Difficulty Rater", layout="wide")
 st.title("Map Difficulty Rater")
 st.write("Rate each map as easy, medium, difficult, or irrelevant.")
@@ -211,19 +177,19 @@ if reviewer:
     col1, col2, col3, col4 = st.columns(4)
 
     if col1.button("Easy", use_container_width=True):
-        save_rating(sheet_url, next_map["name"], reviewer, "easy")
+        save_rating(sheet_url, next_map["name"], reviewer, "easy", df)
         st.rerun()
 
     if col2.button("Medium", use_container_width=True):
-        save_rating(sheet_url, next_map["name"], reviewer, "medium")
+        save_rating(sheet_url, next_map["name"], reviewer, "medium", df)
         st.rerun()
 
     if col3.button("Difficult", use_container_width=True):
-        save_rating(sheet_url, next_map["name"], reviewer, "difficult")
+        save_rating(sheet_url, next_map["name"], reviewer, "difficult", df)
         st.rerun()
 
     if col4.button("Irrelevant", use_container_width=True):
-        save_rating(sheet_url, next_map["name"], reviewer, "irrelevant")
+        save_rating(sheet_url, next_map["name"], reviewer, "irrelevant", df)
         st.rerun()
 
     with st.expander("Show current ratings table"):
