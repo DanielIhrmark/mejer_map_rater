@@ -65,7 +65,7 @@ def list_maps_in_folder(folder_id: str):
 
 
 def get_drive_image_url(file_id: str) -> str:
-    return f"https://drive.google.com/uc?export=view&id={file_id}"
+    return f"https://drive.google.com/thumbnail?id={file_id}&sz=w1000"
 
 
 # -----------------------------
