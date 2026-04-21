@@ -128,7 +128,7 @@ def pick_next_map(files, df: pd.DataFrame, reviewer: str):
 
 st.set_page_config(page_title="Map Difficulty Rater", layout="wide")
 st.title("Map Difficulty Rater")
-st.write("Rate each map as easy, medium, difficult, or irrelevant.")
+st.write("Rate each map as easy, medium, difficult, or irrelevant. If the error code 'Could not initialize the Google Sheet header.' appears, wait 60 seconds for API rate to refresh.")
 
 sheet_url = st.secrets["app"]["sheet_url"]
 folder_id = st.secrets["app"]["drive_folder_id"]
