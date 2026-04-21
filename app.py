@@ -7,7 +7,7 @@ from googleapiclient.discovery import build
 # -----------------------------
 # CONFIG
 # -----------------------------
-REVIEWERS = ["Henrik", "Daniel", "Thomas", "Ahmed"]
+REVIEWERS = ["Henrik", "Daniel", "Thomas", "Ahmad"]
 RATING_OPTIONS = ["easy", "medium", "difficult", "irrelevant"]
 SHEET_NAME = "Sheet1"  # Change if your worksheet has another name
 
