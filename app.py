@@ -4,7 +4,7 @@ import gspread
 from google.oauth2.service_account import Credentials
 from googleapiclient.discovery import build
 
-REVIEWERS = ["Henrik", "Daniel", "Thomas", "Ahmad"]
+REVIEWERS = ["Henrik", "Daniel", "Thomas", "Ahmad", "Jonas"]
 SHEET_NAME = "Sheet1"
 
 @st.cache_resource
@@ -88,7 +88,7 @@ def ensure_headers(sheet_url: str):
     expected_header = ["Map"] + REVIEWERS
 
     if header != expected_header:
-        worksheet.update("A1:E1", [expected_header])
+        worksheet.update("A1:F1", [expected_header])
         load_ratings_df.clear()
 
 
@@ -106,6 +106,7 @@ def save_rating(sheet_url: str, filename: str, reviewer: str, rating: str, df: p
         "Daniel": 3,
         "Thomas": 4,
         "Ahmad": 5,
+        "Jonas": 6,
     }
     col_number = reviewer_col_map[reviewer]
 
@@ -163,7 +164,7 @@ if reviewer:
     next_map = pick_next_map(files, df, reviewer)
 
     if next_map is None:
-        st.success(f"{reviewer} has rated all available maps.")
+        st.success(f"{reviewer} has rated all available maps. Celebrate and be merry!")
         with st.expander("Show current ratings table"):
             st.dataframe(df, use_container_width=True)
         st.stop()
